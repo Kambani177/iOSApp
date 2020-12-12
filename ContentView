@@ -1,0 +1,185 @@
+//
+//  ContentView.swift
+//  MusicApp
+//
+//  Created by KAMBANI on 01.11.20.
+//
+
+import SwiftUI
+import Firebase
+
+struct Album : Hashable {
+    var id = UUID()
+    var name : String
+    var artist : String
+    var image : String
+    var songs : [Song]
+}
+
+struct Song : Hashable {
+    var id = UUID()
+    var name : String
+    var time : String
+    var image : String
+    var file : String
+}
+
+struct ContentView: View {
+    
+    @ObservedObject var data : OurData
+    
+    @State private var currentAlbum : Album?
+    @State private var isActive = false
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                ScrollView(.horizontal, showsIndicators: false, content: {
+                    LazyHStack{
+                        ForEach(self.data.albums, id: \.self, content: {
+                            album in
+                            AlbumArt(album: album)
+                                .onTapGesture{
+                                    self.isActive.toggle()
+                                    self.currentAlbum = album
+                                }
+                                .background(
+                                    NavigationLink(destination:
+                                                    ZStack{
+                                                        //layer 0
+                                                        LinearGradient(gradient: Gradient(colors: [
+                                                                                            Color.init(red: 0.733, green: 0.737, blue: 0.7411),
+                                                                                            Color.black,
+                                                                                            Color.black]
+                                                        ), startPoint: .top, endPoint: .bottom).edgesIgnoringSafeArea(/*@START_MENU_TOKEN@*/.all/*@END_MENU_TOKEN@*/)
+                                                        
+                                                        //Layer 1
+                                                        VStack {
+                                                            Spacer().frame(height: 20)
+                                                            Image(self.currentAlbum?.image ?? album.image)
+                                                                .resizable()
+                                                                .frame(width: 250, height: 250)
+                                                            Text(self.currentAlbum?.name ?? album.name)
+                                                                .foregroundColor(.init(red: 1, green: 1, blue: 1))
+                                                                .font(.system(size: 20, weight: .bold))
+                                                            Text(self.currentAlbum?.artist ?? album.artist)
+                                                                .foregroundColor(.init(red: 0.733, green: 0.737, blue: 0.7411))
+                                                                .font(.system(size: 16, weight: .medium))
+                                                            Spacer()
+                                                        }
+                                                        //Layer 2
+                                                        ScrollView{
+                                                            VStack(spacing: 0){
+                                                                HStack {
+                                                                    Spacer()
+                                                                        .frame(height: 400)
+                                                                        .background(LinearGradient(gradient: Gradient(colors: [Color.clear,
+                                                                                                                               Color.clear,
+                                                                                                                               Color.clear,
+                                                                                                                               Color.black]), startPoint: .top, endPoint: .bottom))
+                                                                }
+                                                                LazyVStack{
+                                                                    if self.data.albums.first == nil{
+                                                                        EmptyView()
+                                                                    } else {
+                                                                    ForEach((self.currentAlbum?.songs ?? self.data.albums.first?.songs) ??
+                                                                    [Song(name: "", time: "", image: "", file: "")],
+                                                                    id: \.self,
+                                                                    content: {
+                                                                        song in
+                                                                        SongCell(album: currentAlbum ?? self.data.albums.first!, song : song)
+                                                                         })
+                                                                    }
+                                                                }.background(Color.black)
+                                                            }.background(Color.clear)
+                                                        }
+                                                    }
+                                                            , isActive: $isActive) { EmptyView() })
+                        })
+                }
+                })
+           //This part is an optional/alternate view
+//                LazyVStack{
+//                    if self.data.albums.first == nil{
+//                        EmptyView()
+//                    } else {
+//                    ForEach((self.currentAlbum?.songs ?? self.data.albums.first?.songs) ??
+//                    [Song(name: "", time: "", image: "", file: "")],
+//                    id: \.self,
+//                    content: {
+//                        song in
+//                        SongCell(album: currentAlbum ?? self.data.albums.first!, song : song)
+//                         })
+//                    }
+//                }
+            }.navigationTitle(Text("My Albums"))
+        }
+        
+    }
+}
+
+struct AlbumArt : View {
+    var album : Album
+//    var isWithText : Bool
+    var body : some View {
+        ZStack {
+            VStack {
+                Image(album.image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 200, height: 200, alignment: .center)
+                Text(album.name)
+                    .font(.system(size: 20, weight: .bold))
+                    .padding(.top, 0)
+                Text(album.artist)
+                    .font(.system(size: 15, weight: .medium))
+            }
+        }.cornerRadius(5).shadow(radius: radius: 10).padding([.top, .leading, .trailing], 20)
+        
+        //optional/alternative view
+//        VStack {
+//            NavigationLink(destination: AlbumArt) {
+//                Image(album.image)
+//                    .resizable()
+//                    .aspectRatio(contentMode: /*@START_MENU_TOKEN@*/.fill/*@END_MENU_TOKEN@*/)
+//                    .frame(width: 200, height: 200, alignment: .center)
+//                    .cornerRadius(12)
+//                    .shadow(radius: 10)
+//                    .padding([.top, .leading, .trailing], 10)
+//            }
+//            Text(album.name)
+//                .font(.system(size: 20, weight: .bold))
+//            Text(album.artist)
+//                .font(.system(size: 15, weight: .medium))
+//        }
+    }
+}
+
+
+struct SongCell : View {
+    var album : Album
+    var song : Song
+    var body: some View {
+        NavigationLink(
+            destination: PlayerView(album: album, song: song),
+            label: {
+                HStack{
+                    ZStack{
+                        Image(song.image)
+                            .resizable()
+                            .frame(width: 50, height: 50, alignment: .center)
+                            .foregroundColor(.blue)
+                        Image(systemName: "play")
+                            .frame(width: 20, height: 20, alignment: .center)
+                            .foregroundColor(.white)
+                    }
+                    Text(song.name)
+                        .bold()
+                        .foregroundColor(.white)
+                    Spacer()
+                    Text(song.time)
+                        .foregroundColor(.white)
+                }.padding(20)
+            }).buttonStyle(PlainButtonStyle())
+    }
+}
